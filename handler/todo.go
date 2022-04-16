@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
@@ -16,6 +18,58 @@ type TODOHandler struct {
 func NewTODOHandler(svc *service.TODOService) *TODOHandler {
 	return &TODOHandler{
 		svc: svc,
+	}
+}
+
+// ServeHTTP implements http.Handler interface.
+func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		var createTodoRequest *model.CreateTODORequest
+
+		// デコード
+		err := json.NewDecoder(r.Body).Decode(&createTodoRequest)
+		if err != nil {
+			http.Error(
+				w,
+				http.StatusText(http.StatusBadRequest),
+				http.StatusBadRequest,
+			)
+			return
+		}
+		defer r.Body.Close()
+
+		// Subjectが空の時、エラーを返す
+		if createTodoRequest.Subject == "" {
+			http.Error(
+				w,
+				http.StatusText(http.StatusBadRequest),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// SubJectが空でない時、Todoを新規作成
+		todo, err := h.svc.CreateTODO(
+			r.Context(),
+			createTodoRequest.Subject,
+			createTodoRequest.Description,
+		)
+		//log.Println(todo)
+		if err != nil {
+			return
+		}
+
+		// エンコード
+		m := &model.CreateTODOResponse{TODO: *todo}
+		if err := json.NewEncoder(w).Encode(m); err != nil {
+			http.Error(
+				w,
+				http.StatusText(http.StatusBadRequest),
+				http.StatusBadRequest,
+			)
+			return
+		}
+		//fmt.Fprint(w, http.StatusOK)
 	}
 }
 
