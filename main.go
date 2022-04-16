@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -14,6 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("main: failed to exit successfully, err =", err)
 	}
+
 }
 
 func realMain() error {
@@ -45,12 +47,15 @@ func realMain() error {
 	if err != nil {
 		return err
 	}
+
+	// 関数の遅延実行
 	defer todoDB.Close()
 
 	// set http handlers
 	mux := router.NewRouter(todoDB)
 
-	// TODO: ここから実装を行う
+	// start the http server
+	resp := http.ListenAndServe(port, mux)
 
-	return nil
+	return resp
 }
