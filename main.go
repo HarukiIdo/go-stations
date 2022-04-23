@@ -15,7 +15,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("main: failed to exit successfully, err =", err)
 	}
-
 }
 
 func realMain() error {
@@ -55,7 +54,7 @@ func realMain() error {
 	mux := router.NewRouter(todoDB)
 
 	// start the http server
-	resp := http.ListenAndServe(port, mux)
+	error := http.ListenAndServe(port, mux)
 
-	return resp
+	return error
 }
