@@ -24,11 +24,13 @@ func realMain() error {
 		defaultDBPath = ".sqlite3/todo.db"
 	)
 
+	// .envに環境変数を書いている？
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 
+	// .envに環境変数を書いている？
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = defaultDBPath
