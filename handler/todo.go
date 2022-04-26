@@ -97,6 +97,27 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewEncoder(w).Encode(m); err != nil {
 			return
 		}
+
+	case http.MethodGet:
+		params := r.URL.Query()
+		prevID := params.Get("prevID")
+		size := params.Get("size")
+
+		readTODORequest := model.ReadTODORequest{
+			PrevID: int64(prevID),
+			Size:   0,
+		}
+
+		todos, err := h.svc.ReadTODO(r.Context(), readTODORequest.PrevID, readTODORequest.Size)
+		if err != nil {
+			return
+		}
+		readTODOResponse := model.ReadTODOResponse{
+			TODOs: todos,
+		}
+		if err := json.NewEncoder(w).Encode(readTODOResponse); err != nil {
+			return
+		}
 	}
 }
 

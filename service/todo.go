@@ -74,23 +74,27 @@ func (s *TODOService) ReadTODO(ctx context.Context, prevID, size int64) ([]*mode
 		return nil, err
 	}
 
-	var rows *sql.Rows
-	var todo *model.TODO
+	readwithIDStm, err := s.db.PrepareContext(ctx, readWithID)
+	if err != nil {
+		return nil, err
+	}
 
-	if prevID != todo.ID {
-		rows, err = readStm.QueryContext(ctx, read, size)
+	var rows *sql.Rows
+
+	// PrevIDを持っているかによりクエリを変更
+	if prevID == 0 {
+		rows, err = readStm.QueryContext(ctx, size)
 	} else {
-		rows, err = readStm.QueryContext(ctx, readWithID, size)
+		rows, err = readwithIDStm.QueryContext(ctx, prevID, size)
 	}
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var todos []*model.TODO
-
+	todos := []*model.TODO{}
 	for rows.Next() {
-
+		todo := &model.TODO{}
 		if err := rows.Scan(&todo.ID, &todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -104,7 +108,7 @@ func (s *TODOService) ReadTODO(ctx context.Context, prevID, size int64) ([]*mode
 		return nil, err
 	}
 
-	return todos, nil
+	return todos, err
 }
 
 // UpdateTODO updates the TODO on DB.
