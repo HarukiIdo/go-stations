@@ -3,10 +3,13 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
+	"github.com/k0kubun/pp/v3"
 )
 
 // A TODOHandler implements handling REST endpoints.
@@ -25,7 +28,7 @@ func NewTODOHandler(svc *service.TODOService) *TODOHandler {
 func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		var createTodoRequest *model.CreateTODORequest
+		var createTodoRequest model.CreateTODORequest
 
 		// デコード
 		err := json.NewDecoder(r.Body).Decode(&createTodoRequest)
@@ -71,7 +74,7 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodPut:
-		var updateTODORequest *model.UpdateTODORequest
+		var updateTODORequest model.UpdateTODORequest
 		if err := json.NewDecoder(r.Body).Decode(&updateTODORequest); err != nil {
 			return
 		}
@@ -92,6 +95,7 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.StatusText(http.StatusNotFound),
 				http.StatusBadRequest,
 			)
+			return
 		}
 		m := model.UpdateTODOResponse{TODO: *todo}
 		if err := json.NewEncoder(w).Encode(m); err != nil {
@@ -99,20 +103,48 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodGet:
+		var readTODORequest model.ReadTODORequest
+
 		params := r.URL.Query()
-		prevID := params.Get("prevID")
-		size := params.Get("size")
 
-		readTODORequest := model.ReadTODORequest{
-			PrevID: int64(prevID),
-			Size:   0,
+		var err error
+		var prevID int64 = 0
+		prevIDParam := params.Get("prev_id")
+		if prevIDParam != "" {
+			prevID, err = strconv.ParseInt(prevIDParam, 10, 64)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			readTODORequest.PrevID = prevID
 		}
+		var size int64 = 0
+		sizeParam := params.Get("size")
+		if sizeParam != "" {
+			size, err = strconv.ParseInt(sizeParam, 10, 64)
+			if err != nil {
+				return
+			}
+			readTODORequest.Size = size
+		}
+		pp.Printf("prevID:%v\n", prevID)
+		pp.Printf("size:%v\n", size)
 
-		todos, err := h.svc.ReadTODO(r.Context(), readTODORequest.PrevID, readTODORequest.Size)
+		// todosを取得
+		todos, err := h.svc.ReadTODO(
+			r.Context(),
+			readTODORequest.PrevID,
+			readTODORequest.Size,
+		)
 		if err != nil {
+			log.Println(err)
 			return
 		}
-		readTODOResponse := model.ReadTODOResponse{
+
+		pp.Printf("len:%v\n", len(todos))
+		pp.Println(todos)
+
+		readTODOResponse := &model.ReadTODOResponse{
 			TODOs: todos,
 		}
 		if err := json.NewEncoder(w).Encode(readTODOResponse); err != nil {

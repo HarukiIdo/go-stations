@@ -114,6 +114,7 @@ func TestStation16(t *testing.T) {
 			}
 
 			resp, err := http.Get(srv.URL + "/todos" + q)
+			//fmt.Println(srv.URL + "/todos" + q)
 			if err != nil {
 				t.Errorf("リクエストに失敗しました: %v", err)
 				return

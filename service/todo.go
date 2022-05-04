@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
 	"github.com/TechBowl-japan/go-stations/model"
@@ -29,22 +30,26 @@ func (s *TODOService) CreateTODO(ctx context.Context, subject, description strin
 	)
 	ins, err := s.db.PrepareContext(ctx, insert)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	// ステートメントを実行するが、行は返さない
 	res, err := ins.ExecContext(ctx, subject, description)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	conf, err := s.db.PrepareContext(ctx, confirm)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -55,6 +60,7 @@ func (s *TODOService) CreateTODO(ctx context.Context, subject, description strin
 	// ステートメントを実行し、行を返す
 	err = conf.QueryRowContext(ctx, id).Scan(&todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	//log.Println(todo)
@@ -71,23 +77,33 @@ func (s *TODOService) ReadTODO(ctx context.Context, prevID, size int64) ([]*mode
 
 	readStm, err := s.db.PrepareContext(ctx, read)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	readwithIDStm, err := s.db.PrepareContext(ctx, readWithID)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	var rows *sql.Rows
 
+	// デフォルト設定
+	if size == 0 {
+		size = 3
+	}
+
 	// PrevIDを持っているかによりクエリを変更
-	if prevID == 0 {
+	switch {
+	case prevID == 0:
 		rows, err = readStm.QueryContext(ctx, size)
-	} else {
+	default:
 		rows, err = readwithIDStm.QueryContext(ctx, prevID, size)
 	}
+
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -98,13 +114,16 @@ func (s *TODOService) ReadTODO(ctx context.Context, prevID, size int64) ([]*mode
 		if err := rows.Scan(&todo.ID, &todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt); err != nil {
 			return nil, err
 		}
+
 		todos = append(todos, todo)
 	}
 
 	if err := rows.Close(); err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	if err := rows.Err(); err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -120,11 +139,13 @@ func (s *TODOService) UpdateTODO(ctx context.Context, id int64, subject, descrip
 
 	updateStmt, err := s.db.PrepareContext(ctx, update)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	res, err := updateStmt.ExecContext(ctx, subject, description, id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -139,6 +160,7 @@ func (s *TODOService) UpdateTODO(ctx context.Context, id int64, subject, descrip
 
 	conf, err := s.db.PrepareContext(ctx, confirm)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
